@@ -14,7 +14,7 @@ require File::Basename;
 require File::Spec;
 require VMS::Filespec if $^O eq 'VMS';
 
-use Test::More tests => 242;
+use Test::More tests => 244;
 
 do {
     # provide some protection against growth in size of '.' during the test
@@ -508,6 +508,18 @@ ok($r==42) unless $dbh->{mx_handle_list} && ok(1); # skip for Multiplex
 
 $dbh->{HandleError} = undef;
 ok(!$dbh->{HandleError});
+
+for (1) {
+  my $state = -1;
+  local $dbh->{HandleError} = sub {
+    $state = $dbh->state eq 'S1000';
+    diag "HandleError: $state";
+    return print "$$\n";
+  };
+  $dbh->prepare("select unknown_col_name from ?");
+  is($state, 1, 'saved');
+}
+ok(!$dbh->{HandleError}, 'HandleError unset');
 
 {
 	# dump_results;
